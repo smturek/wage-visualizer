@@ -42,8 +42,8 @@
                         </div>
                         <div class="form-check">
                             <label class="form-check-label">
-                                <input class="form-check-input" type="checkbox" value="utah" (change)="updateFilters($event, 'county')" [checked]="true">
-                                Utah County
+                                <input class="form-check-input" type="checkbox" value="beaver" (change)="updateFilters($event, 'county')" [checked]="true">
+                                Beaver County
                             </label>
                         </div>
                     </div>
@@ -54,7 +54,7 @@
 
     <div>
         <table class="table table-striped">
-            <thead>
+            <thead class="thead-dark">
                 <tr>
                     <th>ID</th>
                     <th>County</th>
@@ -72,10 +72,12 @@
                 <tr *ngFor="let record of filteredDataSet">
                     <td>{{record.id}}</td>
                     <td>{{record.county | titlecase}}</td>
-                    <td>{{record.title}}</td>
+                    <td>
+                        <a href="#" (click)="showDetailModal(record.title)" data-toggle="modal" data-target="#detailModal">{{record.title}}</a>
+                    </td>
                     <td>{{record.employeeType | titlecase}}</td>
                     <td>{{record.payRate | currency}}</td>
-                    <td>{{record.hoursWorked | number:'1.0-2'}}</td>
+                    <td>{{record.hoursWorked | number:'1.0-0'}}</td>
                     <td>{{record.salary | currency}}</td>
                     <td>{{record.benefits | currency}}</td>
                     <td>{{record.bonus | currency}}</td>
@@ -84,4 +86,47 @@
             </tbody>
         </table>
     </div>
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{modalData.jobTitle}}*</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <table class="table table-striped">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th></th>
+                            <th>Average Rate</th>
+                            <th>Average Salary</th>
+                            <th>Average Benefits</th>
+                            <th>Average Bonus</th>
+                            <th>Average Total Compensation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let record of modalData.averages">
+                            <th>{{record.name | titlecase}}</th>
+                            <td>{{record.payRate  | number:'1.0-2'}}</td>
+                            <td>{{record.salary  | number:'1.0-2'}}</td>
+                            <td>{{record.benefits  | number:'1.0-2'}}</td>
+                            <td>{{record.bonus  | number:'1.0-2'}}</td>
+                            <td>{{record.totalCompensation  | number:'1.0-2'}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <p>*Calculations based on current filter settings</p>
+            </div>
+        </div>
+    </div>
+
 </div>

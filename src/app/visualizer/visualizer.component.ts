@@ -4,6 +4,7 @@ import 'rxjs/add/operator/map';
 import * as _ from "lodash"
 
 import { CompensationRecord } from '../../models/compensation-record'
+import { CountyJobCompositeRecord } from '../../models/county-records'
 
 @Injectable()
 export class CountyDataService {
@@ -24,10 +25,11 @@ export class CountyDataService {
 })
 
 export class VisualizerComponent implements OnInit {
-    //somethings is going on up here and the _this shows the right stuff but this doesn't
     countyData = []
     cleanedCountyData = []
     title = 'Wage Data Visualizer';
+
+    //could probably turn this into a model/instance
     filters = {
         employeeType: {
             full: true,
@@ -35,10 +37,16 @@ export class VisualizerComponent implements OnInit {
         },
         county: {
             uintah: true,
-            utah: true
+            beaver: true
         }
     }
     filteredDataSet = []
+
+    //could probably turn this into a model/instance
+    modalData = {
+        jobTitle: "",
+        averages: []
+    }
 
     constructor(private _countyDataService: CountyDataService) {}
 
@@ -118,7 +126,7 @@ export class VisualizerComponent implements OnInit {
         this.filteredDataSet = [];
         let matchingRecords = [];
         let employeeFilteredRecords = [];
-        let countyFilteredRecords = []
+        let countyFilteredRecords = [];
 
         _.forEach(this.filters, (filterParams, filterField) => {
             matchingRecords = []
@@ -147,6 +155,75 @@ export class VisualizerComponent implements OnInit {
     updateFilters(event, filterName) {
         this.filters[filterName][event.target.defaultValue] = event.target.checked;
         this.updateDataset();
+    }
+
+    showDetailModal(jobTitle) {
+        this.modalData.jobTitle = jobTitle;
+        this.modalData.averages = [];
+        let counties = [];
+        let totals = this.createNewCountyRecord('total');
+        let countyRecord = null;
+        let matchingIndex = -1;
+        let self = this;
+
+        let modalRecords = _.filter(this.filteredDataSet, function(record) { return record.title == jobTitle})
+
+        _.forEach(modalRecords, function(record) {
+            matchingIndex = _.findIndex(counties, function(county) {
+                return county.name == record.county;
+            })
+
+            if (matchingIndex >= 0) {
+                counties[matchingIndex] = self.addRecord(counties[matchingIndex], record);
+            }
+            else {
+                countyRecord = self.createNewCountyRecord(record.county);
+                countyRecord = self.addRecord(countyRecord, record);
+                counties.push(countyRecord);
+            }
+
+            totals = self.addRecord(totals, record);
+        })
+
+        this.modalData.averages.push(this.calculateAverages(totals));
+
+        _.forEach(counties, function(county) {
+            self.modalData.averages.push(self.calculateAverages(county));
+        })
+
+        console.log(this.modalData)
+
+        //median & average switch
+
+        //total average of payRate, salary, benefits, bonus, total
+
+        //by county average of payRate, salary, benefits, bonus, total
+    }
+
+    private calculateAverages(totals) {
+        let numberOfRecords = totals.recordCount;
+        totals.payRate = totals.payRate / numberOfRecords;
+        totals.salary = totals.salary / numberOfRecords;
+        totals.benefits = totals.benefits / numberOfRecords;
+        totals.bonus = totals.bonus / numberOfRecords;
+        totals.totalCompensation = totals.totalCompensation / numberOfRecords;
+
+        return totals;
+    }
+
+    private addRecord(totalRecord, record) {
+        totalRecord.payRate += record.payRate;
+        totalRecord.salary += record.salary;
+        totalRecord.benefits += record.benefits;
+        totalRecord.bonus += record.bonus;
+        totalRecord.totalCompensation += record.totalCompensation;
+        totalRecord.recordCount++;
+
+        return totalRecord;
+    }
+
+    private createNewCountyRecord(county) {
+        return new CountyJobCompositeRecord(county);
     }
 
 }
