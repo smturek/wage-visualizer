@@ -37,6 +37,37 @@ export class VisualizerComponent implements OnInit {
         part: "<20 hrs/wk"
     }
 
+    countyNames = {
+        beaver: 'Beaver',
+        boxelder: 'Box Elder',
+        cache: 'Cache',
+        carbon: 'Carbon',
+        daggett: 'Daggett',
+        davis: 'Davis',
+        duchesne: 'Duchesne',
+        emery: 'Emery',
+        garfield: 'Garfield',
+        grand: 'Grand',
+        iron: 'Iron',
+        juab: 'Juab',
+        kane: 'Kane',
+        millard: 'Millard',
+        morgan: 'Morgan',
+        piute: 'Piute',
+        saltlake: 'Salt Lake',
+        sanjuan: 'San Juan',
+        sanpete: 'Sanpete',
+        sevier: 'Sevier',
+        summit: 'Summit',
+        tooele: 'Tooele',
+        uintah: 'Uintah',
+        utah: 'Utah',
+        wasatch: 'Wasatch',
+        washington: 'Washington',
+        wayne: 'Wayne',
+        weber: 'Weber'
+    }
+
     //could probably turn this into a model/instance
     filters = {
         employeeType: {
@@ -45,8 +76,34 @@ export class VisualizerComponent implements OnInit {
             half: true
         },
         county: {
-            uintah: false,
             beaver: false,
+            boxelder: false,
+            cache: false,
+            carbon: false,
+            daggett: false,
+            davis: false,
+            duchesne: false,
+            emery: false,
+            garfield: false,
+            grand: false,
+            iron: false,
+            juab: false,
+            kane: false,
+            millard: false,
+            morgan: false,
+            piute: false,
+            saltlake: false,
+            sanjuan: false,
+            sanpete: false,
+            sevier: false,
+            summit: false,
+            tooele: false,
+            uintah: false,
+            utah: false,
+            wasatch: false,
+            washington: false,
+            wayne: false,
+            weber: false
         }
     }
     filteredDataSet = []

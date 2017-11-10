@@ -23,13 +23,18 @@ export class CompensationRecord {
         this.selected = false;
 
         this.id = id;
-        this.county = _.lowerCase(county.split(' ')[0]);
         this.employee = employee;
         this.employeeGender = employeeGender;
         this.employeeType = "half"
         this.payRate = payRate ? parseFloat(payRate) : null;
         this.title = title;
 
+        //set up county name
+        let countyArray = county.split(' ');
+        countyArray.pop();
+        this.county = _.toLower(countyArray.join(''));
+
+        //figure out what amount refers to and store in the proper place
         if (type == "Regular Wages") {
             this.salary = amount;
         }
@@ -44,8 +49,10 @@ export class CompensationRecord {
 
         this.totalCompensation = amount;
 
+        //calculate hourly rate
         this.hoursWorked = this.salary / this.payRate;
 
+        //set up employee type
         if (this.hoursWorked > 1560) {
             this.employeeType = "full";
         }
