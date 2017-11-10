@@ -1,4 +1,4 @@
-import { Component, OnInit, Injectable } from '@angular/core';
+import { Component, OnInit, Injectable, Input } from '@angular/core';
 import { Http, Response } from '@angular/http';
 import 'rxjs/add/operator/map';
 import * as _ from "lodash"
@@ -8,7 +8,7 @@ import { CountyJobCompositeRecord } from '../../models/county-records'
 
 @Injectable()
 export class CountyDataService {
-    private _url= '../../assets/UintahCounty.json';
+    private _url= '../../assets/AllUtahCounties.json';
 
     constructor(private _http: Http) {}
 
@@ -25,19 +25,28 @@ export class CountyDataService {
 })
 
 export class VisualizerComponent implements OnInit {
+    @Input() search: string;
     countyData = []
     cleanedCountyData = []
-    title = 'Wage Data Visualizer';
+    title = 'Loading...';
+    loading = true;
+
+    employeeTypes = {
+        full: "30+ hrs/wk",
+        half: "20-19 hrs/wk",
+        part: "<20 hrs/wk"
+    }
 
     //could probably turn this into a model/instance
     filters = {
         employeeType: {
             full: true,
-            part: true
+            part: true,
+            half: true
         },
         county: {
-            uintah: true,
-            beaver: true
+            uintah: false,
+            beaver: false,
         }
     }
     filteredDataSet = []
@@ -52,7 +61,7 @@ export class VisualizerComponent implements OnInit {
 
     ngOnInit() {
         this._countyDataService.getCountyData().subscribe((response) => {
-            this.countyData = response.data;
+            this.countyData = response;
             this.cleanUpDataSet();
         });
     }
@@ -74,7 +83,10 @@ export class VisualizerComponent implements OnInit {
             }
         }
 
-        this.filteredDataSet = _.cloneDeep(this.cleanedCountyData)
+        this.title = 'Utah Employee Compensation Benchmarker'
+        this.loading = false
+        console.log("DONE LOADING!!!???")
+        // this.filteredDataSet = _.cloneDeep(this.cleanedCountyData)
     }
 
     private createNewRecord(dataRow) {
@@ -111,7 +123,7 @@ export class VisualizerComponent implements OnInit {
 
         matchingRecord.totalCompensation += dataRow["AMOUNT"];
 
-        if (dataRow["RATE"] && !matchingRecord.payRate) {
+        if (dataRow["RATE"] && matchingRecord.payRate < dataRow["RATE"]) {
             matchingRecord.payRate = dataRow["RATE"];
         }
 
@@ -119,6 +131,12 @@ export class VisualizerComponent implements OnInit {
 
         if (matchingRecord.hoursWorked > 1560) {
             matchingRecord.employeeType = "full";
+        }
+        else if (matchingRecord.hoursWorked < 1040) {
+            matchingRecord.employeeType = "part"
+        }
+        else {
+            matchingRecord.employeeType = "half"
         }
     }
 
@@ -147,14 +165,83 @@ export class VisualizerComponent implements OnInit {
                 }
             });
         })
-
         this.filteredDataSet = _.intersection(employeeFilteredRecords, countyFilteredRecords);
+    }
 
+    searchRecords(searchString) {
+        this.filteredDataSet = [];
+        let matchingRecords = [];
+        let employeeFilteredRecords = [];
+        let countyFilteredRecords = [];
+
+        let searchFilteredDataSet = _.filter(this.cleanedCountyData, function(record) {
+            return _.toLower(record.title).includes(_.toLower(searchString))
+        })
+
+        _.forEach(this.filters, (filterParams, filterField) => {
+            matchingRecords = []
+
+            _.forEach(filterParams, (filterOn, filterValue) => {
+                if (filterOn) {
+                    matchingRecords = _.filter(this.cleanedCountyData, function(record) { return record[filterField] == filterValue})
+                }
+
+                if (filterField == 'employeeType') {
+                    employeeFilteredRecords = employeeFilteredRecords.concat(matchingRecords);
+                    employeeFilteredRecords = _.uniq(employeeFilteredRecords)
+                }
+
+                if (filterField == 'county') {
+                    countyFilteredRecords = countyFilteredRecords.concat(matchingRecords);
+                    countyFilteredRecords = _.uniq(countyFilteredRecords)
+                }
+            });
+        })
+
+        this.filteredDataSet = _.intersection(searchFilteredDataSet, employeeFilteredRecords, countyFilteredRecords);
     }
 
     updateFilters(event, filterName) {
         this.filters[filterName][event.target.defaultValue] = event.target.checked;
         this.updateDataset();
+    }
+
+    showCustomSummaryModal(useSelected) {
+        this.modalData.jobTitle = "Custom Summary"
+        this.modalData.averages = [];
+        let totals = this.createNewCountyRecord('total');
+        let counties = [];
+        let countyRecord = null;
+        let modalRecords = this.filteredDataSet;
+        let matchingIndex = -1;
+        let self = this;
+
+        if (useSelected) {
+            modalRecords = _.filter(this.filteredDataSet, function(record) { return record.selected});
+        }
+
+        _.forEach(modalRecords, function(record) {
+            matchingIndex = _.findIndex(counties, function(county) {
+                return county.name == record.county;
+            })
+
+            if (matchingIndex >= 0) {
+                counties[matchingIndex] = self.addRecord(counties[matchingIndex], record);
+            }
+            else {
+                countyRecord = self.createNewCountyRecord(record.county);
+                countyRecord = self.addRecord(countyRecord, record);
+                counties.push(countyRecord);
+            }
+
+            totals = self.addRecord(totals, record);
+        })
+
+        this.modalData.averages.push(this.calculateAverages(totals));
+
+        _.forEach(counties, function(county) {
+            self.modalData.averages.push(self.calculateAverages(county));
+        })
     }
 
     showDetailModal(jobTitle) {
@@ -166,7 +253,7 @@ export class VisualizerComponent implements OnInit {
         let matchingIndex = -1;
         let self = this;
 
-        let modalRecords = _.filter(this.filteredDataSet, function(record) { return record.title == jobTitle})
+        let modalRecords = _.filter(this.filteredDataSet, function(record) { return record.title == jobTitle});
 
         _.forEach(modalRecords, function(record) {
             matchingIndex = _.findIndex(counties, function(county) {
@@ -191,13 +278,7 @@ export class VisualizerComponent implements OnInit {
             self.modalData.averages.push(self.calculateAverages(county));
         })
 
-        console.log(this.modalData)
-
         //median & average switch
-
-        //total average of payRate, salary, benefits, bonus, total
-
-        //by county average of payRate, salary, benefits, bonus, total
     }
 
     private calculateAverages(totals) {
@@ -224,6 +305,10 @@ export class VisualizerComponent implements OnInit {
 
     private createNewCountyRecord(county) {
         return new CountyJobCompositeRecord(county);
+    }
+
+    toggleRecordSelect(record) {
+        record.selected = !record.selected
     }
 
 }
